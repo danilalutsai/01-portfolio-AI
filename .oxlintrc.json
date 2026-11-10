@@ -1,0 +1,55 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "vue", "promise"],
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/consistent-type-imports": [
+      "error",
+      { "prefer": "type-imports", "fixStyle": "separate-type-imports" }
+    ],
+    "typescript/consistent-type-definitions": ["error", "type"],
+    "typescript/array-type": ["error", { "default": "array" }],
+
+    "import/extensions": [
+      "error",
+      "never",
+      { "vue": "always", "css": "always", "json": "always", "svg": "always", "png": "always" }
+    ],
+    "import/no-relative-parent-imports": "error",
+    "import/first": "error",
+    "import/newline-after-import": "error",
+    "import/no-duplicates": "error",
+    "import/no-cycle": "error",
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
+
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "prefer-const": "error",
+    "no-var": "error",
+    "prefer-template": "error",
+    "no-param-reassign": "error",
+    "no-nested-ternary": "error",
+    "default-case": "error",
+    "no-console": "warn",
+
+    "vue/define-props-declaration": ["error", "type-based"],
+    "vue/define-emits-declaration": ["error", "type-based"],
+    "vue/require-typed-ref": "error",
+    "vue/no-required-prop-with-default": "error",
+
+    "no-magic-numbers": "off",
+    "unicorn/filename-case": "off"
+  },
+  "ignorePatterns": ["dist", "dist-ssr", "coverage"]
+}
