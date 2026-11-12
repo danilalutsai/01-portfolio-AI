@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues live in GitHub Issues for `danilalutsai/01-portfolio-AI`, accessed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues for `danilalutsai/danilalutsai.github.io`, accessed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

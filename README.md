@@ -6,7 +6,7 @@
 
 Self-taught front-end developer based in Tallinn.
 
-[**Visit the site →**](https://danilalutsai.github.io/01-portfolio-AI/)
+[**Visit the site →**](https://danilalutsai.github.io/)
 
 </div>
 
