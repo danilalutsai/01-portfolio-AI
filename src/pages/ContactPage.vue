@@ -3,7 +3,6 @@ import contactBackground from '@/assets/img/bg-hero-contact.webp'
 import { ref, watch, nextTick } from 'vue';
 import * as z from 'zod';
 
-
 type ContactData = z.infer<typeof SchemaFields>;
 
 interface FieldsKeys {
