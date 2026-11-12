@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { gsap } from 'gsap';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
+import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 
 import { onMounted, onUnmounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 
+import { followPointer } from '@/animations/pointer'
 import { SocialMedia } from '@/data/socialMedia'
-import heroPattern from '@/assets/img/bg-main-about.webp';
-import mainFooter from '@/assets/img/bg-footer-main.webp';
 
-const slogan = ref<HTMLElement | null>(null);
+const terminal = ref<HTMLElement | null>(null);
 const caret = ref<HTMLElement | null>(null);
 
 const hero = ref<HTMLElement | null>(null)
@@ -27,13 +27,14 @@ function animateHero() {
       { opacity: 0, duration: 1 }
     )
     .from(
-      '[data-animate="hero-summary"]',
+      '[data-animate="hero-terminal"]',
       {
         opacity: 0,
-        y: 16,
-        duration: 0.5,
+        y: 24,
+        duration: 0.6,
+        ease: 'power3.out',
       },
-      0.5
+      0.2
     )
     // Animate the wrapper so each button's transform stays available for CSS hover.
     .from(
@@ -75,8 +76,8 @@ function animateAbout(section: HTMLElement) {
       0.35
     )
     .from(
-      '[data-animate="about-socials"]',
-      { opacity: 0, y: 12, duration: 0.5 },
+      '[data-animate="about-socials"] li',
+      { opacity: 0, y: 16, scale: 0.6, duration: 0.5, ease: 'back.out(2)', stagger: 0.08 },
       0.5
     )
 
@@ -137,6 +138,71 @@ function animatePassion(section: HTMLElement) {
       },
       0.35
     )
+}
+
+function animatePassionCopy(section: HTMLElement) {
+  const copy = section.querySelector<HTMLElement>(
+    '[data-animate="passion-copy"]',
+  )
+
+  if (!copy) return
+
+  // Slide each line up from behind a mask once the paragraph comes into view.
+  // autoSplit re-splits on resize so lines always match the current layout.
+  SplitText.create(copy, {
+    type: 'lines',
+    mask: 'lines',
+    autoSplit: true,
+    onSplit: (self) => gsap.from(self.lines, {
+      yPercent: 100,
+      opacity: 0,
+      duration: 0.8,
+      ease: 'power3.out',
+      stagger: 0.08,
+      scrollTrigger: {
+        trigger: copy,
+        start: 'top 85%',
+        once: true,
+      },
+    }),
+  })
+}
+
+function animateName(section: HTMLElement) {
+  const name = section.querySelector<HTMLElement>(
+    '[data-animate="about-name"]',
+  )
+
+  if (!name) return
+
+  const text = name.textContent?.trim() ?? ''
+  const scramble = (speed: number) => ({
+    text,
+    chars: 'upperCase',
+    speed,
+  })
+
+  // Decode the name like a terminal when the card scrolls into view...
+  gsap.to(name, {
+    duration: 1.4,
+    scrambleText: { ...scramble(0.5), revealDelay: 0.3 },
+    scrollTrigger: {
+      trigger: section,
+      start: 'top 75%',
+      once: true,
+    },
+  })
+
+  // ...and again whenever the pointer touches it.
+  function onEnter() {
+    gsap.to(name, { duration: 0.8, scrambleText: scramble(0.8), overwrite: true })
+  }
+
+  name.addEventListener('pointerenter', onEnter)
+
+  return () => {
+    name.removeEventListener('pointerenter', onEnter)
+  }
 }
 
 function scrollToAbout() {
@@ -226,22 +292,43 @@ function animatePassionBackground(section: HTMLElement) {
     })
 }
 
-function animateTyping(heading: HTMLElement, cursor: HTMLElement) {
-  const split = SplitText.create(heading, { type: 'chars' });
-  const [firstChar] = split.chars;
-  if (!firstChar) return;
+function animateBlobs(section: HTMLElement) {
+  // Drift the soft colour blobs slowly around the section.
+  gsap.utils.toArray<HTMLElement>('[data-animate="blob"]', section).forEach((blob) => {
+    gsap.to(blob, {
+      x: () => gsap.utils.random(-80, 80),
+      y: () => gsap.utils.random(-60, 60),
+      scale: () => gsap.utils.random(0.85, 1.2),
+      duration: () => gsap.utils.random(6, 10),
+      ease: 'sine.inOut',
+      repeat: -1,
+      yoyo: true,
+      repeatRefresh: true,
+    })
+  })
+}
 
-  // Place the cursor at the left or right edge of a character.
-  function moveCursorTo(char: Element, edge: 'left' | 'right') {
-    const headingBox = heading.getBoundingClientRect();
-    const charBox = char.getBoundingClientRect();
+// Place the cursor at the left or right edge of an element inside the terminal.
+function moveCursorTo(
+  body: HTMLElement,
+  cursor: HTMLElement,
+  target: Element,
+  edge: 'left' | 'right',
+) {
+  const bodyBox = body.getBoundingClientRect();
+  const targetBox = target.getBoundingClientRect();
 
-    gsap.set(cursor, {
-      x: charBox[edge] - headingBox.left,
-      y: charBox.top - headingBox.top,
-      height: charBox.height,
-    });
-  }
+  gsap.set(cursor, {
+    x: targetBox[edge] - bodyBox.left,
+    y: targetBox.top - bodyBox.top,
+    height: targetBox.height,
+  });
+}
+
+function animateTyping(body: HTMLElement, cursor: HTMLElement) {
+  const lines = gsap.utils.toArray<HTMLElement>('[data-terminal-line]', body);
+  const [firstLine] = lines;
+  if (!firstLine) return;
 
   const blink = gsap.to(cursor, {
     autoAlpha: 0,
@@ -252,11 +339,11 @@ function animateTyping(heading: HTMLElement, cursor: HTMLElement) {
     paused: true,
   });
 
-  gsap.set(split.chars, { autoAlpha: 0 });
-  moveCursorTo(firstChar, 'left');
+  gsap.set(lines, { autoAlpha: 0 });
+  moveCursorTo(body, cursor, firstLine, 'left');
 
   const typing = gsap.timeline({
-    delay: 0.4,
+    delay: 0.6,
     onComplete: () => {
       blink.play();
     },
@@ -264,20 +351,32 @@ function animateTyping(heading: HTMLElement, cursor: HTMLElement) {
 
   typing.set(cursor, { autoAlpha: 1 });
 
-  for (const char of split.chars) {
-    typing
-      .set(char, { autoAlpha: 1 }, '+=0.09')
-      .call(moveCursorTo, [char, 'right'], '<');
+  for (const line of lines) {
+    typing.set(line, { autoAlpha: 1 }, '+=0.25');
+
+    if (line.dataset.terminalLine === 'command') {
+      // Type commands one character at a time.
+      const split = SplitText.create(line, { type: 'chars' });
+      typing.set(split.chars, { autoAlpha: 0 }, '<');
+      for (const char of split.chars) {
+        typing
+          .set(char, { autoAlpha: 1 }, '+=0.08')
+          .call(moveCursorTo, [body, cursor, char, 'right'], '<');
+      }
+    } else {
+      // Print output lines in one go, like a real terminal.
+      typing.call(moveCursorTo, [body, cursor, line, 'right'], '<');
+    }
   }
 }
 
 onMounted(() => {
-  gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, SplitText);
+  gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, SplitText, ScrambleTextPlugin);
   motion = gsap.matchMedia();
   const reducedMotionQuery = '(prefers-reduced-motion: no-preference)';
 
   const heroElement = hero.value;
-  const heading = slogan.value;
+  const body = terminal.value;
   const cursor = caret.value;
 
   if (heroElement) {
@@ -286,20 +385,35 @@ onMounted(() => {
       () => {
         animateHero()
         animateHeroBackground(heroElement)
-        if (heading && cursor) animateTyping(heading, cursor)
+        animateBlobs(heroElement)
+        if (body && cursor) animateTyping(body, cursor)
       },
+      heroElement,
+    )
+
+    // The parallax and glow only make sense with a real mouse.
+    motion.add(
+      `${reducedMotionQuery} and (hover: hover) and (pointer: fine)`,
+      () => followPointer(heroElement),
       heroElement,
     )
   }
 
   const about = aboutSection.value
-  if (about) motion.add(reducedMotionQuery, () => animateAbout(about), about)
+  if (about) {
+    motion.add(reducedMotionQuery, () => {
+      animateAbout(about)
+      return animateName(about)
+    }, about)
+  }
 
   const passion = passionSection.value
   if (passion) {
     motion.add(reducedMotionQuery, () => {
       animatePassion(passion)
+      animatePassionCopy(passion)
       animatePassionBackground(passion)
+      animateBlobs(passion)
     }, passion)
   }
 })
@@ -313,54 +427,98 @@ onUnmounted(() => {
 
 <template>
   <div>
-    <section ref="hero" class="pt-20 pb-40 relative flex flex-col w-full overflow-hidden min-h-svh">
-      <img
-        data-animate="hero-bg"
-        :src="heroPattern"
-        alt=""
-        class="absolute inset-0 h-full w-full object-cover"
-      />
+    <section
+      ref="hero"
+      class="pt-20 pb-40 relative flex flex-col w-full overflow-hidden min-h-svh
+      bg-linear-to-br from-[#c4a0f0] via-[#dc9bd8] to-[#f28fa6]"
+    >
+      <div data-animate="hero-bg" aria-hidden="true" class="absolute inset-0">
+        <div data-parallax="-60" class="absolute -top-20 -left-20">
+          <div
+            data-animate="blob"
+            class="size-96 rounded-full bg-[#b48cf0] opacity-60 blur-3xl"
+          ></div>
+        </div>
+        <div data-parallax="-40" class="absolute top-1/4 -right-24">
+          <div
+            data-animate="blob"
+            class="size-96 rounded-full bg-[#f38ba8] opacity-50 blur-3xl"
+          ></div>
+        </div>
+        <div data-parallax="-80" class="absolute bottom-0 left-1/3">
+          <div
+            data-animate="blob"
+            class="size-80 rounded-full bg-[#e6a1d5] opacity-60 blur-3xl"
+          ></div>
+        </div>
+      </div>
+
+      <div
+        data-pointer-glow
+        aria-hidden="true"
+        class="pointer-events-none invisible absolute top-0 left-0 size-112 rounded-full bg-white/25 blur-3xl"
+      ></div>
 
       <div class="relative mx-auto my-auto w-full max-w-3xl px-6 sm:px-10 pb-20">
         <div
-          class="container flex flex-row items-center justify-center gap-16 sm:flex-row sm:gap-20"
+          data-animate="hero-terminal"
+          class="mx-auto w-full max-w-xl overflow-hidden rounded-xl bg-[#1e1e2e]/75
+          shadow-card backdrop-blur-md"
         >
-          <h1
-            ref="slogan"
-            class="relative grid grid-cols-[auto_auto] justify-center text-6xl font-semibold uppercase leading-tight text-white"
-          >
-            <span class="text-right text-green-500">B</span>
-            <span>uild</span>
+          <div aria-hidden="true" class="flex items-center gap-2 bg-[#181825]/80 px-4 py-3">
+            <span class="size-3 rounded-full bg-[#f38ba8]"></span>
+            <span class="size-3 rounded-full bg-[#f9e2af]"></span>
+            <span class="size-3 rounded-full bg-[#a6e3a1]"></span>
+            <span class="ml-3 font-mono text-sm text-[#a6adc8]">danila@portfolio: ~</span>
+          </div>
 
-            <span class="text-right">de<span class="text-green-500">b</span></span>
-            <span>ug</span>
+          <div ref="terminal" class="relative space-y-4 p-6 sm:p-8">
+            <h1
+              data-terminal-line="command"
+              class="mx-auto grid w-fit grid-cols-[auto_auto] text-5xl font-semibold uppercase
+              leading-tight text-white sm:text-6xl"
+            >
+              <span class="text-right text-green-500">B</span>
+              <span>uild</span>
 
-            <span class="text-right text-green-500">B</span>
-            <span>oost</span>
+              <span class="text-right">de<span class="text-green-500">b</span></span>
+              <span>ug</span>
+
+              <span class="text-right text-green-500">B</span>
+              <span>oost</span>
+            </h1>
+
+            <p data-terminal-line="command" class="w-fit font-mono text-base text-[#cdd6f4]">
+              <span aria-hidden="true" class="mr-3 text-green-500">$</span>whoami
+            </p>
+            <p
+              data-terminal-line="output"
+              class="font-mono text-base leading-7 text-[#cdd6f4]"
+            >
+              Self-taught front-end developer based in Tallinn. I learned by building, breaking and
+              rebuilding — and I'm still doing exactly that.
+            </p>
+            <p
+              data-terminal-line="output"
+              aria-hidden="true"
+              class="w-fit font-mono text-base text-green-500"
+            >$</p>
 
             <span
               ref="caret"
               aria-hidden="true"
               class="invisible absolute top-0 left-0 w-2 bg-green-500"
             ></span>
-          </h1>
+          </div>
         </div>
 
-        <p
-          data-animate="hero-summary"
-          class="mx-auto mt-8 mb-8 max-w-100 text-center font-mono text-lg leading-8 font-semibold text-gray-100"
-        >
-          Self-taught front-end developer based in Tallinn. I learned by building, breaking and
-          rebuilding — and I'm still doing exactly that.
-        </p>
-
-        <div data-animate="hero-actions" class="flex flex-wrap justify-center gap-3 pt-5">
+        <div data-animate="hero-actions" class="flex flex-wrap justify-center gap-3 pt-10">
           <button
             type="button"
             class="inline-flex cursor-pointer items-center rounded-lg border-4
             bg-green-500 px-4 py-2 text-lg font-semibold text-gray-600
             shadow-card transition-transform duration-300 ease-standard
-            hover:translate-y-[-0.3rem] hover:duration-200 motion-reduce:transition-none sm:px-6 sm:py-3 border-green-500"
+            hover:-translate-y-1 hover:scale-105 hover:duration-200 active:scale-95 motion-reduce:transition-none sm:px-6 sm:py-3 border-green-500"
             @click="scrollToAbout"
           >
             About
@@ -370,7 +528,7 @@ onUnmounted(() => {
             class="group inline-flex cursor-pointer items-center rounded-lg
             border-4 bg-green-500 px-4 py-2 text-lg font-semibold text-gray-600
             shadow-card transition-transform duration-300 ease-standard
-            hover:translate-y-[-0.3rem] hover:duration-200
+            hover:-translate-y-1 hover:scale-105 hover:duration-200 active:scale-95
             motion-reduce:transition-none sm:px-6 sm:py-3 min-w-5 border-gray-600"
           >Get in touch
             <span
@@ -456,12 +614,13 @@ onUnmounted(() => {
         <div class="min-w-0 flex-1 md:mb-10">
           <h2
             data-animate="about-heading"
+            aria-label="Danila Lutsai"
             class="relative  py-5 text-left text-2xl
             font-semibold text-gray-600 uppercase sm:text-3xl lg:text-4xl ml-5
             after:absolute after:bottom-0 after:left-0 after:h-1 after:w-full
             after:content-[''] after:bg-linear-to-r after:from-[#cba6f7]
             after:to-[#f38ba8]"
-          > <span class="inline-block bg-linear-to-r from-[#cba6f7]
+          > <span data-animate="about-name" class="inline-block bg-linear-to-r from-[#cba6f7]
               to-[#f38ba8] bg-clip-text text-transparent">
               DANILA LUTSAI </span>
           </h2>
@@ -536,15 +695,22 @@ onUnmounted(() => {
     <section
       ref="passionSection"
       class="relative mx-auto flex justify-center overflow-hidden sm:p-30 py-20
-      px-5"
+      px-5 bg-linear-to-br from-[#c49cf4] via-[#b6a2f4] to-[#a2a9f4]"
     >
-      <img
-        data-animate="passion-bg"
-        :src="mainFooter"
-        loading="lazy"
-        alt=""
-        class="absolute inset-0 left-0 w-full h-full object-cover"
-      />
+      <div data-animate="passion-bg" aria-hidden="true" class="absolute inset-0">
+        <div
+          data-animate="blob"
+          class="absolute -top-16 -left-16 size-96 rounded-full bg-[#cba6f7] opacity-60 blur-3xl"
+        ></div>
+        <div
+          data-animate="blob"
+          class="absolute top-1/3 -right-20 size-96 rounded-full bg-[#89b4fa] opacity-40 blur-3xl"
+        ></div>
+        <div
+          data-animate="blob"
+          class="absolute -bottom-20 left-1/4 size-80 rounded-full bg-[#b4befe] opacity-60 blur-3xl"
+        ></div>
+      </div>
       <div
         data-animate="passion-content"
         class="passion-content relative flex h-full max-w-276 flex-col gap-8
@@ -575,7 +741,7 @@ onUnmounted(() => {
               Passion
             </span>
           </h2>
-          <p class="m-10 ml-5 text-lg text-gray-500 xl:order-1">
+          <p data-animate="passion-copy" class="m-10 ml-5 text-lg text-gray-500 xl:order-1">
             What I enjoy most about development is that it combines creativity with logic. There is
             always another detail to improve: making an interface clearer, refining a layout for
             smaller screens, improving performance, or finding a cleaner solution to a technical
