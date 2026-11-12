@@ -14,6 +14,13 @@ import { SocialMedia } from '@/data/socialMedia'
 const terminal = ref<HTMLElement | null>(null);
 const caret = ref<HTMLElement | null>(null);
 
+// Faint columns of random binary digits behind the hero terminal, one digit
+// per line. Enough columns to cover wide screens; extra ones are clipped.
+const binaryColumns = Array.from({ length: 60 }, () => ({
+  digits: Array.from({ length: 40 }, () => (Math.random() < 0.5 ? '0' : '1')).join('\n'),
+  opacity: gsap.utils.random(0.4, 1),
+}));
+
 const hero = ref<HTMLElement | null>(null)
 const aboutSection = ref<HTMLElement | null>(null);
 const passionSection = ref<HTMLElement | null>(null);
@@ -292,6 +299,20 @@ function animatePassionBackground(section: HTMLElement) {
     })
 }
 
+function animateBinary(section: HTMLElement) {
+  // Each column holds its digits twice, so sliding it down by half loops seamlessly.
+  gsap.utils.toArray<HTMLElement>('[data-animate="binary-column"]', section).forEach((column) => {
+    gsap
+      .fromTo(column, { yPercent: -50 }, {
+        yPercent: 0,
+        duration: gsap.utils.random(25, 50),
+        ease: 'none',
+        repeat: -1,
+      })
+      .progress(Math.random())
+  })
+}
+
 function animateBlobs(section: HTMLElement) {
   // Drift the soft colour blobs slowly around the section.
   gsap.utils.toArray<HTMLElement>('[data-animate="blob"]', section).forEach((blob) => {
@@ -386,6 +407,7 @@ onMounted(() => {
         animateHero()
         animateHeroBackground(heroElement)
         animateBlobs(heroElement)
+        animateBinary(heroElement)
         if (body && cursor) animateTyping(body, cursor)
       },
       heroElement,
@@ -451,6 +473,20 @@ onUnmounted(() => {
             class="size-80 rounded-full bg-[#e6a1d5] opacity-60 blur-3xl"
           ></div>
         </div>
+
+        <div
+          class="absolute inset-0 flex overflow-hidden font-mono text-base
+          leading-10 text-white opacity-[0.30] select-none
+          mask-[linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)]"
+        >
+          <span
+            v-for="(column, index) in binaryColumns"
+            :key="index"
+            data-animate="binary-column"
+            class="w-10 shrink-0 whitespace-pre-line text-center"
+            :style="{ opacity: column.opacity }"
+          >{{ `${column.digits}\n${column.digits}` }}</span>
+        </div>
       </div>
 
       <div
@@ -495,14 +531,14 @@ onUnmounted(() => {
               data-terminal-line="output"
               class="font-mono text-base leading-7 text-[#cdd6f4]"
             >
-              Self-taught front-end developer based in Tallinn. I learned by building, breaking and
-              rebuilding — and I'm still doing exactly that.
+              Self-taught front-end developer based in Tallinn. I build for people, debug for
+              clarity, and boost for speed — because a website is something a human has to use.
             </p>
             <p
               data-terminal-line="output"
               aria-hidden="true"
               class="w-fit font-mono text-base text-green-500"
-            >$</p>
+            >$&nbsp;</p>
 
             <span
               ref="caret"
@@ -516,9 +552,9 @@ onUnmounted(() => {
           <button
             type="button"
             class="inline-flex cursor-pointer items-center rounded-lg border-4
-            bg-green-500 px-4 py-2 text-lg font-semibold text-gray-600
+            bg-green-500 hover:bg-green-600 hover:border-green-600 px-4 py-2 text-lg font-semibold text-gray-600
             shadow-card transition-transform duration-300 ease-standard
-            hover:-translate-y-1 hover:scale-105 hover:duration-200 active:scale-95 motion-reduce:transition-none sm:px-6 sm:py-3 border-green-500"
+            hover:-translate-y-1 hover:duration-200 active:scale-95 motion-reduce:transition-none sm:px-6 sm:py-3 border-green-500"
             @click="scrollToAbout"
           >
             About
@@ -526,9 +562,9 @@ onUnmounted(() => {
           <RouterLink
             to="/contact"
             class="group inline-flex cursor-pointer items-center rounded-lg
-            border-4 bg-green-500 px-4 py-2 text-lg font-semibold text-gray-600
+            border-4 bg-green-500 hover:bg-green-600 px-4 py-2 text-lg font-semibold text-gray-600
             shadow-card transition-transform duration-300 ease-standard
-            hover:-translate-y-1 hover:scale-105 hover:duration-200 active:scale-95
+            hover:-translate-y-1 hover:duration-200 active:scale-95
             motion-reduce:transition-none sm:px-6 sm:py-3 min-w-5 border-gray-600"
           >Get in touch
             <span
