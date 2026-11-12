@@ -9,6 +9,7 @@
   --font-sans: 'Avenir Next Medium', 'SF Pro Display', 'Cascadia Mono', sans-serif;
   --font-mono: 'Cascadia Mono', ui-monospace, monospace;
   --color-green-500: #79d99e;
+  --color-green-600: #62cc8b;
   --color-green-800: #3aa664;
   --color-orange-500: #fab387;
   --shadow-card: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%);
