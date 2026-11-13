@@ -5,6 +5,7 @@ import { SplitText } from 'gsap/SplitText';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 
+import TerminalWindow from '@/components/TerminalWindow.vue';
 import { followPointer } from '@/animations/pointer';
 
 const route = useRoute();
@@ -282,25 +283,17 @@ onUnmounted(() => {
           The page you're looking for doesn't exist. Maybe the link has a typo, or the page moved.
         </p>
 
-        <div
-          data-animate="not-found-copy"
-          class="mt-6 w-full overflow-hidden rounded-lg bg-[#1e1e2e] text-left shadow-card"
-        >
-          <div aria-hidden="true" class="flex gap-2 bg-[#181825] px-4 py-3">
-            <span class="size-3 rounded-full bg-[#f38ba8]"></span>
-            <span class="size-3 rounded-full bg-[#f9e2af]"></span>
-            <span class="size-3 rounded-full bg-[#a6e3a1]"></span>
-          </div>
+        <TerminalWindow data-animate="not-found-copy" class="mt-6 text-left">
 
           <div
             ref="terminal"
-            class="relative space-y-1 p-4 font-mono text-sm leading-6 text-[#cdd6f4] sm:text-base"
+            class="relative space-y-1 p-4 font-mono text-sm leading-6 sm:text-base"
           >
             <p data-terminal-line="command" class="break-all">
               <span aria-hidden="true" class="text-green-500">$ </span>
               <span data-terminal-text>cd {{ route.path }}</span>
             </p>
-            <p data-terminal-line="output" class="w-fit text-[#f38ba8]">
+            <p data-terminal-line="output" class="w-fit text-ctp-red">
               error: page not found
             </p>
             <p data-terminal-line="command">
@@ -312,14 +305,14 @@ onUnmounted(() => {
                 did you mean
                 <RouterLink
                   :to="suggestion.to"
-                  class="text-[#89b4fa] underline underline-offset-4 hover:text-[#a6e3a1]"
+                  class="text-ctp-blue underline underline-offset-4 hover:text-ctp-green"
                 >{{ suggestion.label }}</RouterLink>?
               </template>
               <template v-else>
                 try heading back to
                 <RouterLink
                   to="/"
-                  class="text-[#89b4fa] underline underline-offset-4 hover:text-[#a6e3a1]"
+                  class="text-ctp-blue underline underline-offset-4 hover:text-ctp-green"
                 >Main</RouterLink>
               </template>
             </p>
@@ -330,7 +323,7 @@ onUnmounted(() => {
               class="invisible absolute top-0 left-0 w-2 bg-green-500"
             ></span>
           </div>
-        </div>
+        </TerminalWindow>
 
         <div data-animate="not-found-copy" class="mt-8">
           <RouterLink

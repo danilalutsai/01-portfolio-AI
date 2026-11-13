@@ -10,6 +10,7 @@ import { RouterLink } from 'vue-router';
 
 import { followPointer } from '@/animations/pointer'
 import { SocialMedia } from '@/data/socialMedia'
+import TerminalWindow from '@/components/TerminalWindow.vue'
 
 const terminal = ref<HTMLElement | null>(null);
 const caret = ref<HTMLElement | null>(null);
@@ -510,17 +511,12 @@ onUnmounted(() => {
       ></div>
 
       <div class="relative mx-auto my-auto w-full max-w-3xl px-6 sm:px-10 pb-2 sm:pb-20">
-        <div
+        <TerminalWindow
           data-animate="hero-terminal"
-          class="mx-auto w-full max-w-xl overflow-hidden rounded-xl bg-[#1e1e2e]/75
-          shadow-card backdrop-blur-md"
+          title="danila@portfolio: ~"
+          translucent
+          class="mx-auto max-w-xl"
         >
-          <div aria-hidden="true" class="flex items-center gap-2 bg-[#181825]/80 px-4 py-3">
-            <span class="size-3 rounded-full bg-[#f38ba8]"></span>
-            <span class="size-3 rounded-full bg-[#f9e2af]"></span>
-            <span class="size-3 rounded-full bg-[#a6e3a1]"></span>
-            <span class="ml-3 font-mono text-sm text-[#a6adc8]">danila@portfolio: ~</span>
-          </div>
 
           <div ref="terminal" class="relative space-y-4 p-5 sm:p-8">
             <h1
@@ -538,12 +534,12 @@ onUnmounted(() => {
               <span>oost</span>
             </h1>
 
-            <p data-terminal-line="command" class="w-fit font-mono text-base text-[#cdd6f4]">
+            <p data-terminal-line="command" class="w-fit font-mono text-base text-ctp-text">
               <span aria-hidden="true" class="mr-3 text-green-500">$</span>whoami
             </p>
             <p
               data-terminal-line="output"
-              class="font-mono text-base leading-7 text-[#cdd6f4]"
+              class="font-mono text-base leading-7 text-ctp-text"
             >
               Self-taught front-end developer based in Tallinn. I build for people, debug for
               clarity, and boost for speed — because a website is something a human has to use.
@@ -560,7 +556,7 @@ onUnmounted(() => {
               class="invisible absolute top-0 left-0 w-2 bg-green-500"
             ></span>
           </div>
-        </div>
+        </TerminalWindow>
 
         <div data-animate="hero-actions" class="flex flex-wrap justify-center gap-3 pt-6 sm:pt-10">
           <button
