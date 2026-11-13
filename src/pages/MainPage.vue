@@ -216,12 +216,13 @@ function scrollToAbout() {
   if (!aboutSection.value) return;
   gsap.to(window, {
     duration: window.matchMedia(
-      '(prefersreduced-motion: reduce)'
+      '(prefers-reduced-motion: reduce)'
     ).matches ? 0 : 1,
     ease: 'power2.inOut',
     scrollTo: {
       y: aboutSection.value,
-      offsetY: -30,
+      // Leave a strip of the hero visible above the About card.
+      offsetY: 80,
       autoKill: false,
     },
     overwrite: 'auto',
@@ -329,6 +330,14 @@ function animateBlobs(section: HTMLElement) {
   })
 }
 
+// A wrapped paragraph spans several rows; the cursor belongs on the last one only.
+function lastRowBox(target: Element) {
+  const range = document.createRange();
+  range.selectNodeContents(target);
+  const rows = range.getClientRects();
+  return rows[rows.length - 1] ?? target.getBoundingClientRect();
+}
+
 // Place the cursor at the left or right edge of an element inside the terminal.
 function moveCursorTo(
   body: HTMLElement,
@@ -337,7 +346,7 @@ function moveCursorTo(
   edge: 'left' | 'right',
 ) {
   const bodyBox = body.getBoundingClientRect();
-  const targetBox = target.getBoundingClientRect();
+  const targetBox = lastRowBox(target);
 
   gsap.set(cursor, {
     x: targetBox[edge] - bodyBox.left,
@@ -361,7 +370,6 @@ function animateTyping(body: HTMLElement, cursor: HTMLElement) {
   });
 
   gsap.set(lines, { autoAlpha: 0 });
-  moveCursorTo(body, cursor, firstLine, 'left');
 
   const typing = gsap.timeline({
     delay: 0.6,
@@ -372,12 +380,14 @@ function animateTyping(body: HTMLElement, cursor: HTMLElement) {
 
   typing.set(cursor, { autoAlpha: 1 });
 
+  let startTarget: Element = firstLine;
   for (const line of lines) {
     typing.set(line, { autoAlpha: 1 }, '+=0.25');
 
     if (line.dataset.terminalLine === 'command') {
       // Type commands one character at a time.
       const split = SplitText.create(line, { type: 'chars' });
+      if (line === firstLine) startTarget = split.chars[0] ?? line;
       typing.set(split.chars, { autoAlpha: 0 }, '<');
       for (const char of split.chars) {
         typing
@@ -389,6 +399,10 @@ function animateTyping(body: HTMLElement, cursor: HTMLElement) {
       typing.call(moveCursorTo, [body, cursor, line, 'right'], '<');
     }
   }
+
+  // Start on the first character, not the first line: the slogan spans three rows,
+  // so sizing the cursor to the whole line made it fill half the terminal.
+  moveCursorTo(body, cursor, startTarget, 'left');
 }
 
 onMounted(() => {
@@ -451,7 +465,7 @@ onUnmounted(() => {
   <div>
     <section
       ref="hero"
-      class="pt-20 pb-40 relative flex flex-col w-full overflow-hidden min-h-svh
+      class="pt-6 sm:pt-20 pb-8 relative flex flex-col w-full overflow-hidden min-h-[calc(100svh-89px)]
       bg-linear-to-br from-[#c4a0f0] via-[#dc9bd8] to-[#f28fa6]"
     >
       <div data-animate="hero-bg" aria-hidden="true" class="absolute inset-0">
@@ -476,7 +490,7 @@ onUnmounted(() => {
 
         <div
           class="absolute inset-0 flex overflow-hidden font-mono text-base
-          leading-10 text-white opacity-[0.30] select-none
+          leading-10 text-white opacity-[0.40] select-none
           mask-[linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)]"
         >
           <span
@@ -495,7 +509,7 @@ onUnmounted(() => {
         class="pointer-events-none invisible absolute top-0 left-0 size-112 rounded-full bg-white/25 blur-3xl"
       ></div>
 
-      <div class="relative mx-auto my-auto w-full max-w-3xl px-6 sm:px-10 pb-20">
+      <div class="relative mx-auto my-auto w-full max-w-3xl px-6 sm:px-10 pb-2 sm:pb-20">
         <div
           data-animate="hero-terminal"
           class="mx-auto w-full max-w-xl overflow-hidden rounded-xl bg-[#1e1e2e]/75
@@ -508,10 +522,10 @@ onUnmounted(() => {
             <span class="ml-3 font-mono text-sm text-[#a6adc8]">danila@portfolio: ~</span>
           </div>
 
-          <div ref="terminal" class="relative space-y-4 p-6 sm:p-8">
+          <div ref="terminal" class="relative space-y-4 p-5 sm:p-8">
             <h1
               data-terminal-line="command"
-              class="mx-auto grid w-fit grid-cols-[auto_auto] text-5xl font-semibold uppercase
+              class="mx-auto grid w-fit grid-cols-[auto_auto] text-4xl font-semibold uppercase
               leading-tight text-white sm:text-6xl"
             >
               <span class="text-right text-green-500">B</span>
@@ -548,7 +562,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div data-animate="hero-actions" class="flex flex-wrap justify-center gap-3 pt-10">
+        <div data-animate="hero-actions" class="flex flex-wrap justify-center gap-3 pt-6 sm:pt-10">
           <button
             type="button"
             class="inline-flex cursor-pointer items-center rounded-lg border-4
@@ -609,7 +623,7 @@ onUnmounted(() => {
       <button
         type="button"
         aria-label="Scroll to About"
-        class="group relative bottom-10 left-1/2 flex size-12 -translate-x-1/2
+        class="group relative mx-auto flex size-12 -translate-y-12
         cursor-pointer items-center justify-center text-white"
         @click="scrollToAbout"
       >
@@ -730,7 +744,7 @@ onUnmounted(() => {
 
     <section
       ref="passionSection"
-      class="relative mx-auto flex justify-center overflow-hidden sm:p-30 py-20
+      class="relative mx-auto flex flex-col items-center overflow-hidden sm:p-30 sm:pb-16 py-20
       px-5 bg-linear-to-br from-[#c49cf4] via-[#b6a2f4] to-[#a2a9f4]"
     >
       <div data-animate="passion-bg" aria-hidden="true" class="absolute inset-0">
@@ -790,8 +804,8 @@ onUnmounted(() => {
       <button
         type="button"
         aria-label="Scroll to Top"
-        class="group absolute bottom-30 left-1/2 flex size-12 -translate-x-1/2
-        cursor-pointer items-center justify-center text-white pb-10 mx-auto"
+        class="group relative flex size-12 cursor-pointer items-center
+        justify-center text-white"
         @click="scrollToTop"
       >
         <svg
@@ -811,7 +825,7 @@ onUnmounted(() => {
             transition-[scale,opacity] duration-300
             group-hover:scale-y-100 group-hover:opacity-100
             motion-reduce:transition-none"
-          />
+            />
           <path d="m5 15 7-7 7 7" />
         </svg>
       </button>
