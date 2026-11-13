@@ -79,23 +79,27 @@ onUnmounted(() => {
             <img :src="logo" alt="" width="30" height="30" />
           </RouterLink>
 
-          <nav class="hidden items-center md:inline-flex" aria-label="Main">
-            <ul class="flex items-center gap-5">
-              <li v-for="link in links" :key="link.to">
-                <RouterLink
-                  :to="link.to"
-                  class="relative inline-block transition-[translate,opacity,color] duration-300 ease-standard motion-reduce:transition-none"
-                  :class="
-                  route.path === link.to
-                    ? 'font-bold text-green-500 opacity-100'
-                    : 'text-black opacity-50 hover:opacity-70'
-                  "
-                >
-                  {{ link.label }}
-                </RouterLink>
-              </li>
-            </ul>
-            <ul class="ml-5 flex items-center gap-3">
+          <div class="flex items-center">
+            <nav class="hidden items-center md:inline-flex" aria-label="Main">
+              <ul class="flex items-center gap-5">
+                <li v-for="link in links" :key="link.to">
+                  <RouterLink
+                    :to="link.to"
+                    class="relative inline-block transition-[translate,opacity,color] duration-300 ease-standard motion-reduce:transition-none"
+                    :class="
+                    route.path === link.to
+                      ? 'font-bold text-green-500 opacity-100'
+                      : 'text-black opacity-60 hover:opacity-90'
+                    "
+                  >
+                    {{ link.label }}
+                  </RouterLink>
+                </li>
+              </ul>
+            </nav>
+
+            <!-- Outside the nav so the icons stay visible next to the burger on small screens. -->
+            <ul v-show="!isOpen" class="flex items-center gap-3 md:ml-5">
               <li v-for="media in socialMediaNav" :key="media.href" class="inline-flex">
                 <a
                   :href="media.href"
@@ -109,34 +113,34 @@ onUnmounted(() => {
                     :alt="media.alt"
                     width="25"
                     height="25"
-                    class="size-6.25 cursor-pointer opacity-50 transition-[translate,opacity] duration-300 ease-standard hover:opacity-70 motion-reduce:transition-none"
+                    class="size-8 cursor-pointer opacity-50 transition-[translate,opacity] duration-300 ease-standard hover:opacity-70 motion-reduce:transition-none"
                   />
                 </a>
               </li>
             </ul>
-          </nav>
 
-          <button
-            type="button"
-            class="relative z-50 flex size-10 cursor-pointer flex-col items-center justify-center gap-1.5 md:hidden"
-            :aria-expanded="isOpen"
-            aria-controls="mobile-nav"
-            aria-label="Toggle navigation"
-            @click="isOpen = !isOpen"
-          >
-            <span
-              class="block h-0.5 w-6 bg-black transition-transform duration-300 ease-standard motion-reduce:transition-none"
-              :class="{ 'translate-y-2 rotate-45': isOpen }"
-            />
-            <span
-              class="block h-0.5 w-6 bg-black transition-opacity duration-300 ease-standard motion-reduce:transition-none"
-              :class="{ 'opacity-0': isOpen }"
-            />
-            <span
-              class="block h-0.5 w-6 bg-black transition-transform duration-300 ease-standard motion-reduce:transition-none"
-              :class="{ '-translate-y-2 -rotate-45': isOpen }"
-            />
-          </button>
+            <button
+              type="button"
+              class="relative z-50 ml-3 flex size-10 cursor-pointer flex-col items-center justify-center gap-1.5 md:hidden"
+              :aria-expanded="isOpen"
+              aria-controls="mobile-nav"
+              aria-label="Toggle navigation"
+              @click="isOpen = !isOpen"
+            >
+              <span
+                class="block h-0.75 w-6 bg-black transition-transform duration-300 ease-standard motion-reduce:transition-none"
+                :class="{ 'translate-y-2.25 rotate-45': isOpen }"
+              />
+              <span
+                class="block h-0.75 w-6 bg-black transition-opacity duration-300 ease-standard motion-reduce:transition-none"
+                :class="{ 'opacity-0': isOpen }"
+              />
+              <span
+                class="block h-0.75 w-6 bg-black transition-transform duration-300 ease-standard motion-reduce:transition-none"
+                :class="{ '-translate-y-2.25 -rotate-45': isOpen }"
+              />
+            </button>
+          </div>
         </header>
 
         <Transition
@@ -156,7 +160,7 @@ onUnmounted(() => {
                   :class="
                   route.path === link.to
                     ? 'font-bold text-green-500 opacity-100'
-                    : 'text-black opacity-40'
+                    : 'text-black opacity-70'
                   "
                 >
                   {{ link.label }}
@@ -174,7 +178,7 @@ onUnmounted(() => {
                   <img
                     :src="media.image"
                     :alt="media.alt"
-                    class="size-6.25 opacity-60 transition-[translate,opacity] duration-300 ease-standard hover:opacity-70 motion-reduce:transition-none"
+                    class="size-7 transition-[translate,opacity] duration-300 ease-standard motion-reduce:transition-none"
                   />
                 </a>
               </li>
