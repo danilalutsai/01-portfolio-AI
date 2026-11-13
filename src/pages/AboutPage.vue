@@ -1,186 +1,181 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { computed, nextTick, onMounted, ref } from 'vue';
 
-gsap.registerPlugin(ScrollTrigger);
+import { prefersReducedMotion, useTypewriter } from '@/composables/useTypewriter';
+import { aboutSession } from '@/data/aboutSession';
+import TerminalCursor from '@/components/TerminalCursor.vue';
+import TerminalPrompt from '@/components/TerminalPrompt.vue';
+import TerminalStatusLine from '@/components/TerminalStatusLine.vue';
+import TerminalWindow from '@/components/TerminalWindow.vue';
+
+const PATH = '~/about';
+const total = aboutSession.length;
+
+// How many commands have printed their output. It starts at all of them, so
+// the first render holds the whole session; the typing only takes over once
+// the page has mounted and motion is allowed.
+const ran = ref(total);
+// The command being typed right now, if any.
+const typingIndex = ref<number | null>(null);
+const interactive = ref(false);
+
+const output = ref<HTMLElement | null>(null);
+const nextButton = ref<HTMLButtonElement | null>(null);
+
+const { typed, type, stop } = useTypewriter();
+
+// Bumped whenever the session is reset, so a command that was still typing
+// can tell it is out of date.
+let run = 0;
+
+const nextCommand = computed(() =>
+  ran.value < total ? aboutSession[ran.value]?.command : 'clear',
+);
+
+function isShown(index: number) {
+  return index < ran.value || index === typingIndex.value;
+}
+
+function reveal(index: number) {
+  output.value?.querySelector(`[data-entry="${index}"]`)?.scrollIntoView({
+    behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    block: 'nearest',
+  });
+}
+
+async function runCommand(index: number, fromUser: boolean) {
+  const entry = aboutSession[index];
+  if (!entry) return;
+
+  const current = run;
+  typingIndex.value = index;
+  await type(entry.command);
+  if (current !== run) return;
+
+  typingIndex.value = null;
+  ran.value = index + 1;
+  await nextTick();
+  reveal(index);
+  // Keep keyboard users on the prompt, which re-renders after each command.
+  if (fromUser) nextButton.value?.focus({ preventScroll: true });
+}
+
+function reset(to: number) {
+  run += 1;
+  stop();
+  typingIndex.value = null;
+  ran.value = to;
+}
+
+async function onNext() {
+  if (ran.value < total) {
+    runCommand(ran.value, true);
+    return;
+  }
+  reset(0);
+  await nextTick();
+  nextButton.value?.focus();
+}
+
+function showEverything() {
+  reset(total);
+}
 
 onMounted(() => {
-  gsap.from(".about-title", {
-    opacity: 0,
-    y: -100,
-    duration: 0.5,
-  });
+  if (prefersReducedMotion()) return;
+
+  interactive.value = true;
+  reset(0);
+  runCommand(0, false);
 });
-
-onMounted(() => {
-  gsap.from(".text-pair-1", {
-    opacity: 0,
-    x: -200,
-    duration: 0.5,
-  })
-  gsap.from(".img-pair-1", {
-    opacity: 0,
-    x: 200,
-    duration: 0.5,
-  });
-});
-
-onMounted(() => {
-  gsap.from(".img-pair-2", {
-    scrollTrigger: {
-      trigger: ".text-pair-2",
-      start: "top 75%",
-      },
-    opacity: 0,
-    x: -200,
-    duration: 1,
-  })
-  gsap.from(".text-pair-2", {
-    scrollTrigger: {
-      trigger: ".text-pair-2",
-      start: "top 75%",
-      },
-    opacity: 0,
-    x: 200,
-    duration: 1,
-  });
-});
-
-onMounted(() => {
-  gsap.from(".text-pair-3", {
-    scrollTrigger: {
-      trigger: ".text-pair-3",
-      start: "top 75%",
-    },
-    opacity: 0,
-    x: -200,
-    duration: 1,
-  })
-  gsap.from(".img-pair-3", {
-    scrollTrigger: {
-      trigger: ".img-pair-3",
-      start: "top 75%",
-    },
-    opacity: 0,
-    x: 200,
-    duration: 1,
-  });
-});
-
-onMounted(() => {
-  gsap.from(".text-pair-4", {
-    duration: 1,
-    opacity: 0,
-    x: 200,
-    scrollTrigger: {
-      trigger: ".text-pair-4",
-      start: "top 75%",
-    },
-  });
-  gsap.from(".img-pair-4", {
-    duration: 1,
-    opacity: 0,
-    x: -200,
-    scrollTrigger: {
-      trigger: ".img-pair-4",
-      start: "top 75%",
-    },
-  });
-});
-
-
 </script>
 
 <template>
-  <div class="overflow-x-clip">
-    <h1 class="about-title mx-auto w-fit py-10 text-center text-3xl font-semibold
+  <div class="overflow-x-clip px-4 pb-16 sm:px-6">
+    <h1 class="mx-auto w-fit py-10 text-center text-3xl font-semibold
       sm:text-4xl bg-linear-to-r from-[#cba6f7] to-[#89b4fa]
       bg-clip-text text-transparent">
       Early in the career.<br />
       Not early in the life.
     </h1>
 
-    <div id="main-section"
-      class="mx-auto w-full grid grid-cols-1 items-center sm:grid-cols-2 max-w-300 px-6 font-sans text-lg text-gray-500 gap-5 font-normal place-items-center">
-
-      <!-- Pair 1, Text left, image right -->
-      <div class="about-text text-pair-1 max-w-125">
-        Hello everyone. My name is Danila Lutsai, I'm 28, and I build things for the web. This site is my portfolio — a small, honest place to put my work, my thinking, and a bit of who I am outside the code. Nothing exhaustive, nothing inflated. Just a starting point.
+    <div class="mx-auto max-w-280">
+      <div class="flex justify-end pb-3">
+        <button
+          v-if="interactive && ran < total"
+          type="button"
+          class="cursor-pointer text-sm text-gray-500 underline underline-offset-4
+          hover:text-gray-700"
+          @click="showEverything"
+        >
+          show everything
+        </button>
       </div>
 
-      <div>
-        <img src="@/assets/img/avatar-01.webp" alt="Danila Lutsai"
-          class="img-pair-1 block h-auto w-full max-w-100 rounded-full shadow-photo">
-      </div>
+      <TerminalWindow title="danila@portfolio: ~/about — zsh" center-title>
+        <div
+          ref="output"
+          aria-live="polite"
+          class="space-y-8 p-4 font-mono text-sm leading-7 sm:p-8 sm:text-base"
+        >
+          <section
+            v-for="(entry, index) in aboutSession"
+            v-show="isShown(index)"
+            :key="entry.command"
+            :data-entry="index"
+            class="scroll-mt-24 scroll-mb-8"
+          >
+            <TerminalPrompt :path="PATH">
+              <template v-if="index === typingIndex">
+                {{ typed }}<TerminalCursor />
+              </template>
+              <template v-else>{{ entry.command }}</template>
+            </TerminalPrompt>
 
-      <!-- Pair 2, Text right, image left -->
-      <div class="about-text text-pair-2 sm:col-start-2 sm:row-start-2 max-w-125">
-        I came to frontend development the long way around, and I think that's an advantage. Being twenty-eight means I've already learned how to learn — how to sit with something confusing until it stops being confusing, how to ask better questions, and how to tell the difference between knowing a thing and only recognizing it. I'm early in this career, not early in my life, and those are very different starting lines.
-      </div>
+            <div
+              v-show="index < ran"
+              class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6"
+            >
+              <img
+                :src="entry.image"
+                :alt="entry.alt"
+                width="150"
+                height="150"
+                :loading="index === 0 ? 'eager' : 'lazy'"
+                class="size-37.5 shrink-0 rounded-lg border border-ctp-surface0 object-cover"
+              >
+              <p class="text-ctp-text">{{ entry.text }}</p>
+            </div>
+          </section>
 
-      <div class="relative">
-        <img src="@/assets/img/mountains.webp" alt="Me hiking in the mountains" loading="lazy"
-          class="img-pair-2 block h-auto shadow-photo rounded-full w-full  max-w-100 aspect-square" />
-      </div>
+          <TerminalPrompt v-if="typingIndex === null" :path="PATH">
+            <button
+              v-if="interactive"
+              ref="nextButton"
+              type="button"
+              class="group cursor-pointer rounded-xs text-left text-ctp-text hover:text-green-500
+              focus-visible:outline-2 focus-visible:outline-offset-2
+              focus-visible:outline-ctp-mauve"
+              @click="onNext"
+            >
+              {{ nextCommand }}<TerminalCursor />
+              <!-- A hint for visitors who don't read shell commands. Part of the
+              click target, but kept out of the button's accessible name. -->
+              <span
+                aria-hidden="true"
+                class="ml-3 inline-block text-ctp-overlay2 transition-transform duration-300
+                group-hover:-translate-x-1 group-hover:text-green-500 motion-reduce:transition-none"
+              >← click me</span>
+            </button>
+            <TerminalCursor v-else />
+          </TerminalPrompt>
+        </div>
 
-      <!-- Pair 3, Text left, image right -->
-      <div class="about-text text-pair-3 sm:col-start-1 sm:row-start-3 max-w-125">
-        What I care about in the work: interfaces that respect the person using them. Pages that
-        load fast. Text you can actually read. Buttons where you expect buttons. A lot of the
-        modern web has forgotten that a website is something a human being has to use, and I'd
-        like to be part of the group that remembers.
-
-      </div>
-
-      <div class="img-pair-3 sm:col-start-2 sm:row-start-3 relative">
-        <img
-          src="@/assets/img/about-focused-2.webp"
-          alt="Mountain landscape"
-          loading="lazy"
-          class="block h-auto shadow-photo rounded-full w-full  max-w-100 aspect-square"
-        />
-      </div>
-
-      <!-- Pair 4, Text right, image left -->
-      <div class="about-text text-pair-4 sm:col-start-2 sm:row-start-4 max-w-125">
-        Right now most of my time goes into Vue and TypeScript. I like TypeScript because it
-        argues with me, and it's usually right. I like Vue because it keeps the distance between
-        an idea and a working interface refreshingly short. I'm the kind of developer who would
-        rather understand why something works than copy a snippet that happens to work — slower at
-        first, much faster later.
-      </div>
-
-      <div class="img-pair-4 mb-10 sm:col-start-1 sm:row-start-4 relative">
-        <img
-          src="@/assets/img/main-02.webp"
-          alt="Mountain and me"
-          loading="lazy"
-          class="shadow-photo rounded-full w-full max-w-100 aspect-square"
-        />
-      </div>
-
-      <!-- <div> -->
-      <!--   Away from the keyboard I'm fairly easy to describe: I like things that reward patience. -->
-      <!--   Long-form reading, problems that don't resolve in an afternoon, the particular -->
-      <!--   satisfaction of a system you understand all the way down. I suspect that's the same instinct -->
-      <!--   that pulled me into programming in the first place, just wearing different clothes. -->
-      <!-- </div> -->
-      <!-- <div> -->
-      <!--   My goals are unglamorous and specific. Get genuinely good at the fundamentals rather than -->
-      <!--   collecting framework names. Ship real projects instead of collecting tutorials. Find a -->
-      <!--   team that builds carefully and writes code other people can read. Keep the curiosity that -->
-      <!--   got me here in the first place. -->
-      <!-- </div> -->
-      <!-- <div>If any of that resonates, take a look at my projects — or just say hello.</div> -->
-
+        <TerminalStatusLine>
+          <span class="px-4 py-1.5 text-ctp-subtext0">{{ ran }}/{{ total }} commands</span>
+          <template #end>press ⏎ to run the next command</template>
+        </TerminalStatusLine>
+      </TerminalWindow>
     </div>
   </div>
 </template>
-
-<style scoped>
-.about-text {
-  margin-bottom: 30px;
-  margin-top: 30px;
-}
-</style>
