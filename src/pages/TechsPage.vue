@@ -1,21 +1,135 @@
 <script setup lang="ts">
 import { gsap } from 'gsap';
-import { onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
+import { useRoute, useRouter } from 'vue-router';
 
-// Images imports
-import fundamentalsImage from '@/assets/img/TechsComputerScience.webp';
-import cssImage from '@/assets/img/TechsCSS.webp';
-import htmlImage from '@/assets/img/TechsHTML.webp';
-import javascriptImage from '@/assets/img/TechsJS.webp';
-import typescriptImage from '@/assets/img/TechsTS.webp';
-import vueImage from '@/assets/img/TechsVueJS.webp';
-import tailwindImage from '@/assets/img/TechsTailwindCSS.webp';
-import aiImage from '@/assets/img/TechsAI.webp';
+import { DEFAULT_TECH_ID, techs } from '@/data/techs';
+import TerminalStatusLine from '@/components/TerminalStatusLine.vue';
+import TerminalWindow from '@/components/TerminalWindow.vue';
 
-const techsDescription = ref<HTMLElement | null>(null);
+import type { Tech } from '@/data/techs';
+
+type LineKind = 'h1' | 'blank' | 'quote' | 'text' | 'h2' | 'item';
+
+type Line = {
+  kind: LineKind;
+  text: string;
+};
+
+const route = useRoute();
+const router = useRouter();
+
+const fileList = ref<HTMLElement | null>(null);
+const content = ref<HTMLElement | null>(null);
 
 gsap.registerPlugin(ScrollToPlugin);
+
+// The URL decides which file is open, so a shared link opens the same file.
+const activeTech = computed<Tech>(() => {
+  const id = route.query.tech;
+  return (
+    techs.find((tech) => tech.id === id) ??
+    techs.find((tech) => tech.id === DEFAULT_TECH_ID) ??
+    techs[0]
+  );
+});
+
+// The file that holds the list's single tab stop. Arrow keys move it;
+// only Enter or a click opens the file.
+const focusedId = ref(activeTech.value.id);
+
+watch(activeTech, (tech) => {
+  focusedId.value = tech.id;
+});
+
+const lines = computed<Line[]>(() => {
+  const tech = activeTech.value;
+  return [
+    { kind: 'h1', text: tech.name },
+    { kind: 'blank', text: '' },
+    { kind: 'quote', text: tech.tagline },
+    { kind: 'blank', text: '' },
+    ...tech.description.map((text): Line => ({ kind: 'text', text })),
+    { kind: 'blank', text: '' },
+    { kind: 'h2', text: 'Day to day' },
+    ...tech.daily.map((text): Line => ({ kind: 'item', text })),
+  ];
+});
+
+function openFile(tech: Tech) {
+  if (tech.id === activeTech.value.id) return;
+  router.replace({ query: { ...route.query, tech: tech.id } });
+}
+
+function moveFocus(step: number) {
+  const index = techs.findIndex((tech) => tech.id === focusedId.value);
+  const next = (index + step + techs.length) % techs.length;
+  const nextTech = techs[next];
+  if (!nextTech) return;
+
+  focusedId.value = nextTech.id;
+  fileList.value?.querySelectorAll('button')[next]?.focus();
+}
+
+function onListKeydown(event: KeyboardEvent) {
+  if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+  switch (event.key) {
+    case 'ArrowDown':
+    case 'ArrowRight':
+    case 'j':
+      moveFocus(1);
+      break;
+    case 'ArrowUp':
+    case 'ArrowLeft':
+    case 'k':
+      moveFocus(-1);
+      break;
+    default:
+      return;
+  }
+  event.preventDefault();
+}
+
+// Bring the new file's lines in one after another, like a buffer loading.
+function animateLines() {
+  if (!content.value) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const rows = content.value.querySelectorAll('[data-line]');
+  // Opacity only, so screen readers still get every line from the live region.
+  gsap.fromTo(
+    rows,
+    { opacity: 0, x: -6 },
+    {
+      opacity: 1,
+      x: 0,
+      duration: 0.12,
+      ease: 'power1.out',
+      stagger: 0.24 / rows.length,
+      overwrite: true,
+    },
+  );
+}
+
+// On phones the files are a sideways row; keep the open one in view.
+// Scrolls the row only, never the page.
+function revealActiveFile() {
+  const list = fileList.value;
+  const active = list?.querySelector<HTMLElement>('[aria-current="true"]');
+  if (!list || !active) return;
+
+  list.scrollTo({
+    left: active.offsetLeft - (list.clientWidth - active.offsetWidth) / 2,
+  });
+}
+
+watch(activeTech, async () => {
+  await nextTick();
+  animateLines();
+  revealActiveFile();
+});
 
 onMounted(() => {
   gsap.from('.techs-title', {
@@ -23,137 +137,9 @@ onMounted(() => {
     y: -100,
     duration: 0.5,
   });
+  animateLines();
+  revealActiveFile();
 });
-
-interface Techs {
-  title: string;
-  image: string;
-  description: string;
-}
-
-const techs: Techs[] = [
-  {
-    title: 'Fundamentals',
-    image: fundamentalsImage,
-    description:
-    "I don't claim to know everything, and I don't think anyone in this field does. What I do have is a habit of learning things properly, from the fundamentals up. When a new tool appears, I can usually see what problem it solves and where it fits. Frameworks change every few years. The basics stay the same.",
-  },
-  {
-    title: 'HTML',
-    image: htmlImage,
-    description:
-    "HTML is where I started, and it's still the layer I care about getting right. I write semantic, accessible markup — proper headings, landmarks, labels and alt text — rather than a wall of divs. Structure comes first, styling after. Done properly, the page already works before a single line of CSS or JavaScript runs.",
-  },
-  {
-    title: 'CSS',
-    image: cssImage,
-    description:
-    "I build layouts with Flexbox and Grid, and I design mobile-first — the small screen decides the structure, wider ones get more room. Custom properties keep colours and spacing consistent instead of scattered. I'd rather solve something with modern CSS than pull in a dependency for it.",
-  },
-  {
-    title: 'JavaScript',
-    image: javascriptImage,
-    description:
-    "JavaScript is the language I work in daily. I'm comfortable with modern syntax, async code and promises, and the DOM underneath the frameworks. Knowing how the event loop and scope actually behave is what makes debugging possible when something breaks in a way the framework doesn't explain.",
-  },
-  {
-    title: 'TypeScript',
-    image: typescriptImage,
-    description: "TypeScript is my default for anything bigger than a quick script. I keep strict mode on and lean on interfaces, union types and generics to describe what data actually looks like. To me, types are documentation the compiler checks: they catch the mistake before the browser does. Underneath it's still JavaScript, so knowing the runtime matters more than writing clever types.",
-  },
-  {
-    title: 'VueJS',
-    image: vueImage,
-    description: "Vue is my framework of choice, and I work with Vue 3 and the Composition API. I like how close it stays to plain HTML, CSS and JavaScript. Single-file components keep things readable. I split interfaces into small, focused components, handle routing with Vue Router, and type props and emits with TypeScript. The framework does the heavy lifting, but I want to understand what it's doing.",
-  },
-  {
-    title: 'TailwindCSS',
-    image: tailwindImage,
-    description: "Tailwind is how I style most projects now. Utility classes keep the styles right next to the markup, so I'm not jumping between files or inventing class names. It works because I already know CSS: every utility maps to a real property, and when something looks off, I know what's happening underneath. I keep the config tidy and pull repeated patterns into components instead of copying long class strings around.",
-  },
-  {
-    title: 'AI',
-    image: aiImage,
-    description: "I use AI tools as part of my workflow: for exploring an unfamiliar API, getting a first draft of boilerplate, or talking through a bug from a different angle. I treat the output as a suggestion from a fast but unreliable colleague. I read it, test it, and rewrite what doesn't fit. I don't ship code I can't explain. AI makes me faster, but the fundamentals are what let me tell when it's wrong.",
-  }
-]
-
-function getImage(event: MouseEvent): HTMLImageElement | null {
-  const card = event.currentTarget;
-  if (!(card instanceof HTMLElement)) return null;
-
-  const image = card.querySelector('.tech-image');
-  return image instanceof HTMLImageElement ? image : null;
-}
-
-function onEnter(event: MouseEvent) {
-  const image = getImage(event);
-  if (!image) return;
-
-  gsap.to(image, {
-    rotationY: 360,
-    transformPerspective: 600,
-    duration: 1,
-    ease: 'power2.out',
-    overwrite: 'auto',
-  });
-}
-
-function onLeave(event: MouseEvent) {
-  const image = getImage(event);
-  if (!image) return;
-
-  gsap.to(image, {
-    rotationY: 0,
-    duration: 1,
-    ease: 'power2.out',
-    overwrite: 'auto',
-  });
-}
-
-const selectedTech = ref<Techs | undefined>(techs[0]);
-
-function onClick(tech: Techs, event: MouseEvent) {
-  selectedTech.value = tech;
-  scrollToDescription();
-
-  const image = getImage(event);
-  if (!image) return;
-
-  gsap.fromTo(
-    image,
-    {
-      rotationY: 0,
-    },
-    {
-      rotationY: 360,
-      duration: 1,
-      ease: 'power2.out',
-      overwrite: 'auto',
-    },
-  );
-}
-
-function scrollToDescription() {
-  if (!techsDescription.value) return;
-  if (!window.matchMedia('(max-width: 639px)').matches) return;
-
-  gsap.to(window, {
-
-    duration: window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches ? 0 : 1,
-
-    delay: 0.5,
-    ease: 'power2.inOut',
-    scrollTo: {
-      y: techsDescription.value,
-      offsetY: 80,
-      autoKill: false,
-    },
-    overwrite: 'auto',
-  });
-}
 
 function scrollToTop() {
   gsap.to(window, {
@@ -171,51 +157,101 @@ function scrollToTop() {
 
 <template>
 
-  <div class="mx-auto w-full max-w-300 mb-20">
+  <div class="mx-auto w-full max-w-300 mb-16 px-4 sm:px-6">
 
-    <h1 class="techs-title py-10 text-3xto-[#a6e3a1] font-semibold text-3xl sm:text-4xl pb-10 bg-linear-180 from-[#89b4fa] to-[#a6e3a1] bg-clip-text text-transparent text-center mb-10">
+    <h1 class="techs-title py-10 font-semibold text-3xl sm:text-4xl pb-10 bg-linear-180 from-ctp-blue to-ctp-green bg-clip-text text-transparent text-center">
       Technologies
     </h1>
 
-    <div class="techs-icons grid grid-cols-2 sm:grid-cols-4 gap-14 justify-items-center sm:max-w-200 max-w-100 mx-auto">
-      <div v-for="tech in techs" :key="tech.title">
-        <div class="text-gray-500 text-lg text-center">{{ tech.title }}</div>
-        <div
-          class="w-30 h-30 cursor-pointer"
-          @mouseenter="onEnter"
-          @mouseleave="onLeave"
-          @click="onClick(tech, $event)"
-        >
-          <img
-            :src="tech.image"
-            :alt="tech.title"
-            class="tech-image size-full object-cover transition-[filter] duration-500"
-            :class="{ grayscale: selectedTech?.title === tech.title }"
+    <p class="max-w-200 text-lg text-gray-500 mx-auto px-6 pb-14 text-center leading-relaxed">
+      I don't claim to know everything, and I don't think anyone in this field does. What I do have is a habit of learning things properly, from the fundamentals up. When a new tool appears, I can usually see what problem it solves and where it fits. Frameworks change every few years. The basics stay the same.
+    </p>
+
+    <TerminalWindow title="~/danila/techs — nvim" center-title class="mx-auto max-w-280">
+      <div class="grid font-mono md:grid-cols-[14rem_1fr]">
+
+        <nav aria-label="Technology files" class="min-w-0 bg-ctp-mantle md:py-4">
+          <p aria-hidden="true" class="hidden px-5 pb-3 text-ctp-subtext0 md:block">
+            <span class="mr-2 text-xs">▾</span>techs/
+          </p>
+          <ul
+            ref="fileList"
+            class="relative flex gap-1 overflow-x-auto p-2 md:flex-col md:overflow-visible md:py-0"
+            @keydown="onListKeydown"
           >
+            <li v-for="tech in techs" :key="tech.id" class="shrink-0">
+              <button
+                type="button"
+                :tabindex="tech.id === focusedId ? 0 : -1"
+                :aria-current="tech.id === activeTech.id ? 'true' : undefined"
+                class="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2
+                text-left text-sm whitespace-nowrap transition-colors duration-200
+                focus-visible:outline-2 focus-visible:outline-ctp-mauve sm:text-base md:px-4"
+                :class="tech.id === activeTech.id
+                  ? 'bg-ctp-surface0 text-ctp-text'
+                  : 'text-ctp-subtext0 hover:bg-ctp-surface0/50 hover:text-ctp-text'"
+                @click="openFile(tech)"
+                @focus="focusedId = tech.id"
+              >
+                <span aria-hidden="true" class="size-2.5 shrink-0 rounded-xs" :class="tech.color"></span>
+                {{ tech.file }}
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="flex min-w-0 flex-col md:min-h-120">
+          <div class="flex bg-ctp-mantle">
+            <span class="bg-ctp-base px-5 py-3 text-sm text-ctp-text sm:text-base">
+              {{ activeTech.file }}
+            </span>
+          </div>
+
+          <div
+            ref="content"
+            aria-live="polite"
+            class="flex-1 px-3 py-5 text-sm leading-7 sm:px-5 sm:text-base sm:leading-8"
+          >
+            <div
+              v-for="(line, index) in lines"
+              :key="`${activeTech.id}-${index}`"
+              data-line
+              class="grid grid-cols-[2rem_1fr] gap-x-3 sm:grid-cols-[2.5rem_1fr] sm:gap-x-5"
+            >
+              <span aria-hidden="true" class="text-right text-ctp-overlay2 select-none">{{ index + 1 }}</span>
+
+              <h2 v-if="line.kind === 'h1'" class="font-bold text-ctp-maroon">
+                <span aria-hidden="true"># </span>{{ line.text }}
+              </h2>
+              <p v-else-if="line.kind === 'quote'" class="text-ctp-subtext0 italic">
+                <span aria-hidden="true">&gt; </span>{{ line.text }}
+              </p>
+              <p v-else-if="line.kind === 'text'" class="wrap-break-word">{{ line.text }}</p>
+              <h3 v-else-if="line.kind === 'h2'" class="font-bold text-ctp-teal">
+                <span aria-hidden="true">## </span>{{ line.text }}
+              </h3>
+              <p v-else-if="line.kind === 'item'" class="wrap-break-word">
+                <span aria-hidden="true" class="text-ctp-yellow">- </span>{{ line.text }}
+              </p>
+              <span v-else aria-hidden="true">&nbsp;</span>
+            </div>
+          </div>
+
+          <TerminalStatusLine>
+            <span class="bg-ctp-mauve px-3 py-1.5 font-bold text-ctp-crust">NORMAL</span>
+            <span class="truncate text-ctp-text">{{ activeTech.file }}</span>
+            <template #end>markdown · utf-8 · {{ lines.length }}:1</template>
+          </TerminalStatusLine>
         </div>
+
       </div>
-    </div>
-
-    <div ref="techsDescription" class="techsDescription max-w-200 text-lg text-gray-500 mt-10 sm:mt-0 p-10 sm:p-20 mx-auto">
-      <Transition
-        mode="out-in"
-        enter-active-class="transition-opacity duration-300"
-        leave-active-class="transition-opacity duration-300"
-        enter-from-class="opacity-0"
-        leave-to-class="opacity-0"
-      >
-        <p :key="selectedTech?.title">
-          {{ selectedTech?.description }}
-        </p>
-      </Transition>
-    </div>
-
+    </TerminalWindow>
 
       <button
         type="button"
         aria-label="Scroll to Top"
-        class="group absolute left-1/2 flex size-12 -translate-x-1/2
-        cursor-pointer items-center justify-center text-gray-500 pb-10 mx-auto"
+        class="group relative flex size-12 -translate-x-1/2
+        cursor-pointer items-center justify-center text-gray-500 py-20 mx-auto"
         @click="scrollToTop"
       >
         <svg
