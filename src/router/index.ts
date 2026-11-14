@@ -6,6 +6,12 @@ import TechsPage from '@/pages/TechsPage.vue';
 import ContactPage from '@/pages/ContactPage.vue';
 import NotFoundPage from '@/pages/NotFoundPage.vue';
 
+declare module 'vue-router' {
+  interface RouteMeta {
+    title?: string;
+  }
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -18,5 +24,12 @@ const router = createRouter({
   ],
   linkActiveClass: 'active-route',
 })
+
+const SITE_NAME = 'Danila Lutsai';
+
+router.afterEach((to) => {
+  const title = to.meta.title;
+  document.title = !title || title.startsWith(SITE_NAME) ? title ?? SITE_NAME : `${title} · ${SITE_NAME}`;
+});
 
 export default router;
