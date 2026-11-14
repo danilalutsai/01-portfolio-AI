@@ -19,7 +19,6 @@ const ran = ref(total);
 const typingIndex = ref<number | null>(null);
 const interactive = ref(false);
 
-const output = ref<HTMLElement | null>(null);
 const nextButton = ref<HTMLButtonElement | null>(null);
 
 const { typed, type, stop } = useTypewriter();
@@ -36,8 +35,11 @@ function isShown(index: number) {
   return index < ran.value || index === typingIndex.value;
 }
 
-function reveal(index: number) {
-  output.value?.querySelector(`[data-entry="${index}"]`)?.scrollIntoView({
+// Scroll just far enough that the next prompt is on screen, so the visitor
+// can keep clicking without scrolling. If the new output is taller than the
+// screen, the prompt wins and the top of the output scrolls out.
+function revealNextPrompt() {
+  nextButton.value?.scrollIntoView({
     behavior: prefersReducedMotion() ? 'auto' : 'smooth',
     block: 'nearest',
   });
@@ -54,10 +56,12 @@ async function runCommand(index: number, fromUser: boolean) {
 
   typingIndex.value = null;
   ran.value = index + 1;
+  if (!fromUser) return;
+
   await nextTick();
-  reveal(index);
+  revealNextPrompt();
   // Keep keyboard users on the prompt, which re-renders after each command.
-  if (fromUser) nextButton.value?.focus({ preventScroll: true });
+  nextButton.value?.focus({ preventScroll: true });
 }
 
 function reset(to: number) {
@@ -72,9 +76,11 @@ async function onNext() {
     runCommand(ran.value, true);
     return;
   }
-  reset(0);
+  // `clear` keeps `whoami`: an empty window leaves the page with no content.
+  reset(1);
   await nextTick();
-  nextButton.value?.focus();
+  revealNextPrompt();
+  nextButton.value?.focus({ preventScroll: true });
 }
 
 function showEverything() {
@@ -114,7 +120,6 @@ onMounted(() => {
 
       <TerminalWindow title="danila@portfolio: ~/about — zsh" center-title>
         <div
-          ref="output"
           aria-live="polite"
           class="space-y-8 p-4 font-mono text-sm leading-7 sm:p-8 sm:text-base"
         >
@@ -122,8 +127,6 @@ onMounted(() => {
             v-for="(entry, index) in aboutSession"
             v-show="isShown(index)"
             :key="entry.command"
-            :data-entry="index"
-            class="scroll-mt-24 scroll-mb-8"
           >
             <TerminalPrompt :path="PATH">
               <template v-if="index === typingIndex">
@@ -153,7 +156,7 @@ onMounted(() => {
               v-if="interactive"
               ref="nextButton"
               type="button"
-              class="group cursor-pointer rounded-xs text-left text-ctp-text hover:text-green-500
+              class="group scroll-mb-20 cursor-pointer rounded-xs text-left text-ctp-text hover:text-green-500
               focus-visible:outline-2 focus-visible:outline-offset-2
               focus-visible:outline-ctp-mauve"
               @click="onNext"
