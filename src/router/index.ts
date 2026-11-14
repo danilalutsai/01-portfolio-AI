@@ -9,12 +9,12 @@ import NotFoundPage from '@/pages/NotFoundPage.vue';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', name: 'home', component: HomePage },
-    { path: '/about', name: 'about', component: AboutPage },
-    { path: '/techs', name: 'techs', component: TechsPage },
-    { path: '/contact', name: 'contact', component: ContactPage },
+    { path: '/', name: 'home', component: HomePage, meta: { title: 'Danila Lutsai - Front-end developer' } },
+    { path: '/about', name: 'about', component: AboutPage, meta: { title: 'About' } },
+    { path: '/techs', name: 'techs', component: TechsPage, meta: { title: 'Contact' } },
+    { path: '/contact', name: 'contact', component: ContactPage, meta: { title: 'Contact' } },
     // Must stay last so it never shadows a real page.
-    { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundPage },
+    { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundPage, meta: { title: 'Page not found' } },
   ],
   linkActiveClass: 'active-route',
 })
