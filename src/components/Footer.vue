@@ -53,35 +53,15 @@ const columns: FooterColumn[] = [
         label: "LeetCode",
         href: "https://leetcode.com/u/danilalutsai/",
       },
-    ],
-  },
-  {
-    title: "Dependencies",
-    links: [
       {
         kind: 'external',
-        label: "Vue",
-        href: "https://developer.mozilla.org/en-US/",
-      },
-      {
-        kind: 'external',
-        label: "Zod",
-        href: "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
-      },
-      {
-        kind: 'external',
-        label: "GSAP",
-        href: "https://www.typescriptlang.org/",
-      },
-      {
-        kind: 'external',
-        label: "Tailwind",
-        href: "https://tailwindcss.com/",
+        label: "Facebook",
+        href: "https://www.facebook.com/DanilaLutsai98",
       },
     ],
   },
   {
-    title: "Learning Journay",
+    title: "Docs",
     links: [
       {
         kind: 'external',
@@ -103,6 +83,21 @@ const columns: FooterColumn[] = [
         label: "Vue",
         href: "https://vuejs.org/",
       },
+      {
+        kind: 'external',
+        label: "Zod",
+        href: "https://zod.dev/",
+      },
+      {
+        kind: 'external',
+        label: "GSAP",
+        href: "https://gsap.com/docs/",
+      },
+      {
+        kind: 'external',
+        label: "Tailwind",
+        href: "https://tailwindcss.com/",
+      },
     ],
   },
 ];
@@ -111,15 +106,15 @@ const columns: FooterColumn[] = [
 
 <template>
   <footer
-    class="relative isolate bg-cover bg-center bg-gray-600"
+    class="relative isolate bg-cover bg-center bg-ctp-base mx-auto"
   >
     <div
       aria-hidden="true"
-      class="pointer-events-none absolute inset-0 -z-10 bg-black/50"
+      class="pointer-events-none absolute inset-0 -z-10 bg-black/50">
     </div>
     <nav
       aria-label="Footer"
-      class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 p-10 min-w-50  "
+      class="flex flex-wrap justify-center gap-x-16 gap-y-10 p-10 sm:gap-x-24 lg:gap-x-40"
     >
       <div
         v-for="column in columns"
