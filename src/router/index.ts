@@ -17,7 +17,7 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomePage, meta: { title: 'Danila Lutsai - Front-end developer' } },
     { path: '/about', name: 'about', component: AboutPage, meta: { title: 'About' } },
-    { path: '/techs', name: 'techs', component: TechsPage, meta: { title: 'Contact' } },
+    { path: '/techs', name: 'techs', component: TechsPage, meta: { title: 'Techs' } },
     { path: '/contact', name: 'contact', component: ContactPage, meta: { title: 'Contact' } },
     // Must stay last so it never shadows a real page.
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundPage, meta: { title: 'Page not found' } },
