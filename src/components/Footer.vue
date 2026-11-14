@@ -106,7 +106,7 @@ const columns: FooterColumn[] = [
 
 <template>
   <footer
-    class="relative isolate bg-cover bg-center bg-ctp-base mx-auto"
+    class="relative isolate bg-cover bg-center bg-ctp-mantle/75 backdrop-blur-md mx-auto"
   >
     <div
       aria-hidden="true"
@@ -114,13 +114,13 @@ const columns: FooterColumn[] = [
     </div>
     <nav
       aria-label="Footer"
-      class="flex flex-wrap justify-center gap-x-16 gap-y-10 p-10 sm:gap-x-24 lg:gap-x-40"
+      class="block sm:flex flex-wrap justify-center gap-x-6 gap-y-10 p-10 sm:gap-x-40 lg:gap-x-60"
     >
       <div
         v-for="column in columns"
         :key="column.title"
       >
-        <h2 class="text-xl text-green-500 font-bold mb-5">{{ column.title }}</h2>
+        <h2 class="pt-8 text-xl text-green-500 font-bold pb-2">{{ column.title }}</h2>
         <ul class="space-y-2">
           <li
             v-for="link in column.links"
