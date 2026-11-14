@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import { prefersReducedMotion, useTypewriter } from '@/composables/useTypewriter';
 import { aboutSession } from '@/data/aboutSession';
@@ -87,12 +87,34 @@ function showEverything() {
   reset(total);
 }
 
+// Enter runs the next command from anywhere on the page, as the status line
+// promises, without stealing focus on load. Links, buttons and fields keep
+// their own Enter, except a link to this very page (the nav's About link,
+// still focused after it was clicked), where Enter would do nothing.
+function onKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Enter' || event.repeat) return;
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (!interactive.value || typingIndex.value !== null) return;
+
+  const target = event.target as HTMLElement | null;
+  const control = target?.closest('a, button, input, textarea, select, [contenteditable]');
+  if (control && control.getAttribute('aria-current') !== 'page') return;
+
+  event.preventDefault();
+  onNext();
+}
+
 onMounted(() => {
   if (prefersReducedMotion()) return;
 
   interactive.value = true;
+  window.addEventListener('keydown', onKeydown);
   reset(0);
   runCommand(0, false);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown);
 });
 </script>
 
@@ -124,7 +146,7 @@ onMounted(() => {
           class="space-y-8 p-4 font-mono text-sm leading-7 sm:p-8 sm:text-base"
         >
           <section
-            v-for="(entry, index) in aboutSession"
+            v-for="(entry, index  ) in aboutSession"
             v-show="isShown(index)"
             :key="entry.command"
           >
